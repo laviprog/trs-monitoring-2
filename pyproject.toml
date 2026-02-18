@@ -4,7 +4,13 @@ version = "0.0.1"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "aiofiles>=25.1.0",
+    "aiohttp>=3.13.3",
+    "httpx>=0.28.1",
+    "pydantic-settings>=2.13.0",
+    "structlog>=25.5.0",
+]
 
 [tool.ruff]
 line-length = 100
@@ -22,3 +28,8 @@ fixable = ["ALL"]
 quote-style = "double"
 indent-style = "space"
 line-ending = "auto"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.1",
+]
