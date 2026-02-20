@@ -56,7 +56,7 @@ class TranscriptionClient(BaseClient):
             "result_format": result_format,
             "model": model,
             "align_mode": True,
-            "audio_preprocessing": True,
+            "audio_preprocessing": False,
         }
 
         response = await self._post(endpoint=endpoint, files=files, data=data)
