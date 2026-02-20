@@ -61,5 +61,4 @@ class TranscriptionClient(BaseClient):
 
         response = await self._post(endpoint=endpoint, files=files, data=data)
         result = TranscriptionResult.model_validate(response.json())
-        log.info("Transcription result", result=result)
         return result

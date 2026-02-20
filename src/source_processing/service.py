@@ -57,6 +57,7 @@ class SourceProcessing:
             transcription_result = await self._transcription_client.transcribe(
                 filepath, language=self._source.language
             )
+            log.debug("Transcription result", result=transcription_result)
 
             segments = []
             for segment in transcription_result.segments:
@@ -67,6 +68,7 @@ class SourceProcessing:
                     segments.append(segment)
 
             if segments:
+                log.debug("Sending transcription result", source_id=self._source.id, time=self._time, segments=len(segments))
                 await self._backend_client.send_transcription_result(
                     source_id=self._source.id,
                     transcription=TranscriptionList(
@@ -80,6 +82,7 @@ class SourceProcessing:
                         ],
                     ),
                 )
+                log.debug("Sent transcription result", source_id=self._source.id, time=self._time, segments=len(segments))
 
         except Exception as e:
             log.error("Error processing chunk", error=e, source_id=self._source.id, time=self._time)
