@@ -34,7 +34,12 @@ class SourceProcessing:
         Constructs the URL for the video chunk based on the source URL,
         timestamp, and duration.
         """
-        return str(URL(self._source.url) / f"archive-{timestamp}-{duration}.ts")
+        base_url = URL(self._source.url)
+
+        if base_url.suffix == ".m3u8":
+            base_url = base_url.with_name("")
+
+        return str(base_url / f"archive-{timestamp}-{duration}.ts")
 
     async def _iteration(self):
         """
