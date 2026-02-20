@@ -13,7 +13,7 @@ class TranscriptionList(BaseModel):
 
 class Source(BaseModel):
     id: int
-    title: str
+    name: str
     url: str
     language: str
     disabled: bool

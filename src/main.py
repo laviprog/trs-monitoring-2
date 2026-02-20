@@ -19,7 +19,7 @@ async def main():
 
             for source in sources.sources:
                 if not source.disabled and source.id not in tasks:
-                    log.info(f"Starting processing for source {source.title} (ID: {source.id})")
+                    log.info(f"Starting processing for source {source.name} (ID: {source.id})")
                     task = asyncio.create_task(SourceProcessing(source).process())
                     tasks[source.id] = task
 
