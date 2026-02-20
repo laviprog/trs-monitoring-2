@@ -2,7 +2,7 @@ import httpx
 
 from src.config import settings
 
-from .schemas import SourceList, Transcription
+from .schemas import SourceList, TranscriptionList
 
 
 class BackendClient:
@@ -18,13 +18,18 @@ class BackendClient:
         """
         Get the list of sources from the backend.
         """
-        ...
+        endpoint = f"{self._base_url}/sources"
+        response = await self._get(endpoint)
+        return SourceList.model_validate(response.json())
 
-    async def send_transcription_result(self, transcription: Transcription) -> None:
+    async def send_transcription_result(
+        self, source_id: int, transcription: TranscriptionList
+    ) -> None:
         """
         Send the transcription result to the backend.
         """
-        ...
+        endpoint = f"{self._base_url}/transcriptions/{source_id}"
+        await self._post(endpoint, json=transcription.model_dump())
 
     async def _post(self, endpoint: str, **kwargs) -> httpx.Response:
         """

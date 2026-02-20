@@ -1,0 +1,16 @@
+services:
+  trs-monitoring-2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: trs-monitoring-2:latest
+    container_name: trs-monitoring-2
+    env_file:
+      - .env
+    networks:
+      - monitoring-network
+
+networks:
+  monitoring-network:
+    name: monitoring-network
+    driver: bridge

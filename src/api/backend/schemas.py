@@ -1,22 +1,25 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
-class Segment(BaseModel):
+class Transcription(BaseModel):
     start: float
     end: float
     text: str
 
 
-class Transcription(BaseModel):
-    source_id: int
-    segments: list[Segment]
+class TranscriptionList(BaseModel):
+    transcriptions: list[Transcription]
 
 
 class Source(BaseModel):
     id: int
     title: str
-    archive_url: str
-    chunk_duration: int
+    url: str
+    language: str
+    disabled: bool
+    chunk_duration: int = Field(alias="chunkDuration")
+
+    model_config = {"populate_by_name": True}
 
 
 class SourceList(BaseModel):
