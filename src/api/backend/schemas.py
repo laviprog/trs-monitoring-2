@@ -2,8 +2,8 @@ from pydantic import BaseModel, Field
 
 
 class Transcription(BaseModel):
-    start: float
-    end: float
+    start: int
+    end: int
     text: str
 
 

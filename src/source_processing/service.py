@@ -21,6 +21,8 @@ class SourceProcessing:
         self._backend_client = BackendClient()
         self._source = source
         self._excluded_phrases_lower = [p.lower() for p in EXCLUDED_PHRASES]
+        self._gap = 5
+        self._next_time = None
 
     def _get_current_time(self) -> int:
         """
@@ -43,49 +45,79 @@ class SourceProcessing:
 
     async def _iteration(self):
         """
-        Performs a single iteration of processing for the current time chunk
+        Performs a single iteration of processing a video chunk, including downloading,
+        transcribing, and sending the transcription result to the backend.
+        It also handles updating the next time to process based on the transcription results
+        and ensures that incomplete segments are not included in the final transcription
+        sent to the backend.
         """
-        filepath = Path("data/") / str(self._source.id) / f"{self._time}-{self._chunk_duration}.ts"
-        url = self.get_url(
-            timestamp=self._time,
-            duration=self._chunk_duration,
-        )
+
+        actual_start = self._next_time if self._next_time is not None else self._time
+        target_end_grid = self._time + self._chunk_duration
+        actual_duration = target_end_grid - actual_start
+
+        filepath = Path("data/") / str(self._source.id) / f"{actual_start}-{actual_duration}.ts"
+        url = self.get_url(timestamp=actual_start, duration=actual_duration)
+
         try:
             await get_video_from_archive(url, filepath)
 
-            log.debug("Transcribing...")
+            log.debug("Transcribing...", start=actual_start, duration=actual_duration)
             transcription_result = await self._transcription_client.transcribe(
                 filepath, language=self._source.language
             )
             log.debug("Transcription result", result=transcription_result)
 
-            segments = []
+            valid_segments = []
+
             for segment in transcription_result.segments:
                 segment_text_lower = segment.text.lower()
-                if all(phrase not in segment_text_lower for phrase in self._excluded_phrases_lower):
-                    segment.start += self._time
-                    segment.end += self._time
-                    segments.append(segment)
 
-            if segments:
-                log.debug("Sending transcription result", source_id=self._source.id, time=self._time, segments=len(segments))
+                if any(phrase in segment_text_lower for phrase in self._excluded_phrases_lower):
+                    continue
+
+                if actual_duration - segment.end >= self._gap:
+                    segment.start += actual_start
+                    segment.end += actual_start
+                    valid_segments.append(segment)
+                else:
+                    log.debug(
+                        f"Skipping incomplete segment ending at {segment.end} "
+                        f"(duration: {actual_duration})"
+                    )
+
+            if valid_segments:
+                self._next_time = round(valid_segments[-1].end)
+
+                transcription = TranscriptionList(
+                    transcriptions=[
+                        Transcription(
+                            start=round(s.start),
+                            end=round(s.end),
+                            text=s.text,
+                        )
+                        for s in valid_segments
+                    ],
+                )
+
+                log.debug(
+                    "Sending transcription result",
+                    count=len(valid_segments),
+                    source_id=self._source.id
+                )
                 await self._backend_client.send_transcription_result(
                     source_id=self._source.id,
-                    transcription=TranscriptionList(
-                        transcriptions=[
-                            Transcription(
-                                start=segment.start,
-                                end=segment.end,
-                                text=segment.text,
-                            )
-                            for segment in segments
-                        ],
-                    ),
+                    transcription=transcription,
                 )
-                log.debug("Sent transcription result", source_id=self._source.id, time=self._time, segments=len(segments))
+            else:
+                has_raw_segments = len(transcription_result.segments) > 0
+                if has_raw_segments:
+                    self._next_time = actual_start + actual_duration
+                else:
+                    self._next_time = actual_start + actual_duration
 
         except Exception as e:
-            log.error("Error processing chunk", error=e, source_id=self._source.id, time=self._time)
+            log.error("Error processing chunk", error=e, source_id=self._source.id)
         finally:
             if filepath.exists():
                 await delete_file(filepath)

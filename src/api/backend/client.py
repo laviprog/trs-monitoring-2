@@ -3,6 +3,7 @@ import httpx
 from src.config import settings
 
 from .schemas import SourceList, TranscriptionList
+from ... import log
 
 
 class BackendClient:
@@ -19,7 +20,17 @@ class BackendClient:
         Get the list of sources from the backend.
         """
         endpoint = f"{self._base_url}/sources"
+        log.debug(
+            "Fetching sources from backend",
+            endpoint=endpoint
+        )
         response = await self._get(endpoint)
+        log.debug(
+            "Received sources from backend",
+            endpoint=endpoint,
+            status_code=response.status_code,
+            response=response.json()
+        )
         return SourceList.model_validate(response.json())
 
     async def send_transcription_result(
@@ -29,7 +40,19 @@ class BackendClient:
         Send the transcription result to the backend.
         """
         endpoint = f"{self._base_url}/transcriptions/{source_id}"
-        await self._post(endpoint, json=transcription.model_dump())
+        log.debug(
+            f"Sending transcription result",
+            source_id=source_id,
+            transcription=transcription,
+            endpoint=endpoint
+        )
+        result = await self._post(endpoint, json=transcription.model_dump())
+        log.debug(
+            f"Received response from backend after sending transcription result",
+            source_id=source_id,
+            status_code=result.status_code,
+            response=result.json()
+        )
 
     async def _post(self, endpoint: str, **kwargs) -> httpx.Response:
         """
