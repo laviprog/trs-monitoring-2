@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
+from httpx import HTTPStatusError
 from yarl import URL
 
 from src import log
@@ -116,7 +117,24 @@ class SourceProcessing:
                 else:
                     self._next_time = actual_start + actual_duration
 
+        except HTTPStatusError as e:
+            self._next_time = actual_start + actual_duration
+            if e.response.status_code == 500:
+                log.warning(
+                    "Video chunk not available (HTTP 500), skipping",
+                    url=url,
+                    source_id=self._source.id,
+                )
+            else:
+                log.error(
+                    "HTTP error while fetching video chunk",
+                    error=str(e),
+                    url=url,
+                    source_id=self._source.id,
+                    status_code=e.response.status_code,
+                )
         except Exception as e:
+            self._next_time = actual_start + actual_duration
             log.error("Error processing chunk", error=e, source_id=self._source.id)
         finally:
             if filepath.exists():
