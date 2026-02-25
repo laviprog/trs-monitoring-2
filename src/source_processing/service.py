@@ -1,4 +1,5 @@
 import asyncio
+import math
 import time
 from datetime import datetime, timezone
 from pathlib import Path
@@ -93,8 +94,8 @@ class SourceProcessing:
                 transcription = TranscriptionList(
                     transcriptions=[
                         Transcription(
-                            start=round(s.start),
-                            end=round(s.end),
+                            start=math.floor(s.start),
+                            end=math.ceil(s.end),
                             text=s.text,
                         )
                         for s in valid_segments
