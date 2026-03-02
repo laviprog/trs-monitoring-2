@@ -58,6 +58,8 @@ class SourceProcessing:
         target_end_grid = self._time + self._chunk_duration
         actual_duration = target_end_grid - actual_start
 
+        self._next_time = actual_start + actual_duration
+
         filepath = Path("data/") / str(self._source.id) / f"{actual_start}-{actual_duration}.ts"
         url = self.get_url(timestamp=actual_start, duration=actual_duration)
 
@@ -89,7 +91,7 @@ class SourceProcessing:
                     )
 
             if valid_segments:
-                self._next_time = round(valid_segments[-1].end)
+                self._next_time = math.floor(valid_segments[-1].end)
 
                 transcription = TranscriptionList(
                     transcriptions=[
@@ -111,15 +113,8 @@ class SourceProcessing:
                     source_id=self._source.id,
                     transcription=transcription,
                 )
-            else:
-                has_raw_segments = len(transcription_result.segments) > 0
-                if has_raw_segments:
-                    self._next_time = actual_start + actual_duration
-                else:
-                    self._next_time = actual_start + actual_duration
 
         except HTTPStatusError as e:
-            self._next_time = actual_start + actual_duration
             if e.response.status_code == 500:
                 log.warning(
                     "Video chunk not available (HTTP 500), skipping",
@@ -135,7 +130,6 @@ class SourceProcessing:
                     status_code=e.response.status_code,
                 )
         except Exception as e:
-            self._next_time = actual_start + actual_duration
             log.error("Error processing chunk", error=e, source_id=self._source.id)
         finally:
             if filepath.exists():
@@ -152,7 +146,7 @@ class SourceProcessing:
             end_time_counter = time.perf_counter()
 
             duration_execution = end_time_counter - start_time_counter
-            log.info("Duration execution: %s", str(duration_execution))
+            log.info("Duration execution", duration=duration_execution)
 
             self._time += self._chunk_duration
             cur_time = self._get_current_time()
